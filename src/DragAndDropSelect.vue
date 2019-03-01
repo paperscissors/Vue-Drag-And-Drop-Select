@@ -1,5 +1,5 @@
 <template>
-    <div class="drag-and-drop-select row">
+    <div class="drag-and-drop-select row" ref="selector">
         <div class="col-md-12">
             <div class="alert alert-primary" role="alert" v-if="response">
                 {{ response }}
@@ -10,20 +10,20 @@
             <input type="text" v-model="search" class="drag-and-drop-select-search"
                    :placeholder="search_hint">
 
-            <div v-drag-and-drop:options="options" class="drags">
+            <div class="drags">
                 <ul id="results">
-                    <li v-for="(item) in results" :key="item.id" :data-id="item.id">
+                    <li v-for="item in results" :key="item.id" :data-id="item.id" v-dragger draggable='true'>
                         {{ item.name }}
                     </li>
                 </ul>
 
-                <ul id="all_selected">
-                    <li v-for="(item) in selected_items" :key="item.id" :data-id="item.id">
+                <ul id="all_selected" v-dragger>
+                    <li v-for="item in selected" :key="item.id" :data-id="item.id" draggable='true' >
                         {{ item.name }}
                     </li>
                 </ul>
 
-                <ul id="delete">
+                <ul id="delete" v-dragger>
                     <i></i>
                 </ul>
             </div>
@@ -35,12 +35,22 @@
 <script>
     import axios from 'axios'
     import Vue from 'vue'
-    import VueDraggable from 'vue-draggable'
-
-    Vue.use(VueDraggable);
 
     export default {
       props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers'],
+        directives: {
+          dragger: {
+            bind: (el, bindings, vnode) => {
+              const vm = vnode.context;
+              el.addEventListener('dragstart', vm.handleDragStart, false);
+              el.addEventListener('dragenter', vm.handleDragEnter, false);
+              el.addEventListener('dragover', vm.handleDragOver, false);
+              el.addEventListener('dragleave', vm.handleDragLeave, false);
+              el.addEventListener('drop', vm.handleDrop, false);
+              el.addEventListener('dragend', vm.handleDragEnd, false);
+            }
+          }
+        },
         data() {
             return {
                 search: null,
@@ -54,37 +64,23 @@
                 sortable: null,
                 selected: null,
                 headers: null,
-                http:null,
-                options: {
-                    dropzoneSelector: 'ul',
-                    draggableSelector: 'li',
-                    excludeOlderBrowsers: true,
-                    multipleDropzonesItemsDraggingEnabled: true,
-                    showDropzoneAreas: true,
-                    onDrop: (event) => {
-                        this.selectionDropped(event);
-                    }
-                    // ,
-                    // onDragstart: function (event) {
-                    //
-                    // },
-                    // onDragend: function (event) {
-                    //     // if (String(event.droptarget.id) === "results") {
-                    //     //     this.animate();
-                    //     //     event.stop();
-                    //     // }
-                    // }                    //
-                }
+                drag_source: null,
+                drag_source_name: null,
+                element: null,
+                http:null
             }
         },
         name: "DragAndDropSelect",
         watch: {
-            search() {
-                this.fetch();
-            },
-            results() {
-                if (this.updated_slides.length > 0) {
-                    this.selected_items = this.updated_slides
+            search(after, before) {
+                if (after !== before) {
+                  if (typeof timeout !== 'undefined') clearTimeout(timeout);
+
+                  // Make a new timeout set to go off in 800ms
+                  let timeout = setTimeout(() => {
+                      this.fetch();
+                  }, 500);
+
                 }
             }
         },
@@ -92,6 +88,7 @@
           this.data_search = this.search_uri;
           this.data_post = this.post_uri;
           this.search_hint = this.hint;
+          this.selected = this.selected_items;
           this.headers = this.auth_headers;
           this.http = axios.create(this.headers);
         },
@@ -104,50 +101,161 @@
                     this.http.get(this.data_search, {params: {search: this.search}})
                         .then(response => this.results = response.data.data)
                         .catch(error => {
-                            return error;
+                            console.log(error)
                         });
                 }
             },
             persistChanges() {
-                let slides = document.getElementById("all_selected").getElementsByTagName("LI");
-                let updated_slides = Array.from(slides).map(function (slide) {
-                    return {'id': slide.dataset.id, 'name': slide.innerText};
-                });
-
-                this.updated_slides = updated_slides;
-                this.http.post(this.data_post, {updated_slides: updated_slides})
+                this.http.post(this.data_post, {updated_slides: this.selected})
                     .then(response => {
                         this.response = String(response.data);
                     })
                     .catch(error => {
-                      return error;
                     });
             },
-            selectedEvent(item) {
-                this.selected = item;
-            },
-            selectionDropped(event) {
-                if (String(event.droptarget.id) === "all_selected") {
-                    this.persistChanges();
-                }
-
-                if (String(event.droptarget.id) === "delete") {
-                    event.items[0].remove();
-                    this.persistChanges();
-                }
-            },
             animate: function () {
-
                 this.shake_error = true;
                 setTimeout(() => {
                     this.shake_error = false;
                 }, 1000);
-            }
+            },
+            handleDragStart: function (e) {
+                e.target.classList.add('dragging');
+                this._dragSrcEl = e.target;
+                e.dataTransfer.effectAllowed = 'move';
+                // Need to set to something or else drag doesn't start
+                e.dataTransfer.setData('text', '*');
+                this.drag_source = e.target.dataset.id;
+                this.drag_source_name = e.target.innerText;
+                this.element = e.target;
+                // if (typeof(this.vm[this.$params.dragStart]) === 'function') {
+                //   this.vm[this.$params.dragStart].call(this, e.target);
+                // }
+              },
+              handleDragOver: function (e) {
+                if (e.preventDefault) {
+                  // allows dropping
+                  e.preventDefault();
+                }
+
+                e.dataTransfer.dropEffect = 'move';
+                e.target.classList.add('drag-over');
+                e.dataTransfer.effectAllowed='move';
+                e.dataTransfer.setData("Text", '*');
+
+                // var src = e.dataTransfer.setData('text', '');
+                // if (typeof(this.vm[this.params.dragOver]) === 'function') {
+                //   this.vm[this.params.dragOver].call(this, e.target);
+                // }
+                return false;
+              },
+              handleDragEnter: function (e) {
+                // if (typeof(this.vm[this.params.dragEnter]) === 'function') {
+                //   this.vm[this.params.dragEnter].call(this, e.target);
+                // }
+                e.preventDefault();
+                e.target.classList.add('drag-enter');
+              },
+              handleDragLeave: function (e) {
+                // if (typeof(this.vm[this.params.dragLeave]) === 'function') {
+                //   this.vm[this.params.dragLeave].call(this, e.target);
+                // }
+                e.target.classList.remove('drag-enter');
+              },
+              handleDragEnd: function (e) {
+                e.target.classList.remove('dragging', 'drag-over', 'drag-enter');
+                this.element = null;
+                // if (typeof(this.vm[this.params.dragEnd]) === 'function') {
+                //   this.vm[this.params.dragEnd].call(this, e.target);
+                // }
+              },
+              handleDrop: function (e) {
+                if (e.target.id == "delete") {
+                  for (var i = this.selected.length - 1; i >= 0; --i) {
+                      if (this.selected[i].id == this.drag_source) {
+                          this.selected.splice(i,1);
+                      }
+                  }
+                  this.persistChanges();
+                }
+
+                if (e.target.id == "all_selected") {
+                  if (this.isBefore(this.element, e.target)) {
+                    console.log("one", this.element, e.target)
+
+                    //e.target.parentNode.insertBefore(this.element, e.target);
+                  } else {
+                    console.log("two", this.element, e.target.nextSibling)
+                    for (var i = this.selected.length - 1; i >= 0; --i) {
+                        if (this.selected[i].id == this.drag_source) {
+                            this.selected.splice(i,1);
+                        }
+                    }
+
+                    this.selected.push({id: this.drag_source, name: this.drag_source_name});
+                    //e.target.parentNode.insertBefore(this.element, e.target.nextSibling);
+                  }
+
+                  // if selected is the same count as the LIs in this, we need to reserialize in order, not push
+
+                  this.persistChanges();
+                }
+
+                e.target.classList.remove('dragging', 'drag-over', 'drag-enter');
+
+                var elems = document.querySelectorAll(".drag-over");
+`
+                [].forEach.call(elems, function(el) {
+                    el.classList.remove("hover");
+                });
+`
+
+                this.drag_source = this.drag_source_name = null; // maybe we set the text like this, too?
+
+                if (e.stopPropagation) {
+                  // stops the browser from redirecting.
+                  e.stopPropagation();
+                }
+
+                return false;
+              },
+
+              isBefore: function(el1, el2) {
+                  if (el2.parentNode === el1.parentNode)
+                      for (var cur = el1.previousSibling; cur; cur = cur.previousSibling)
+                          if (cur === el2)
+                              return true;
+                  return false;
+              }
         }
     }
 </script>
 
 <style lang="scss">
+[draggable] {
+      -moz-user-select: none;
+      -khtml-user-select: none;
+      -webkit-user-select: none;
+      user-select: none;
+      /* Required to make elements draggable in old WebKit */
+      -khtml-user-drag: element;
+      -webkit-user-drag: element;
+    }
+    li {
+      color: black;
+    }
+    .dragging {
+      opacity: 0.8;
+      color: #6894D1;
+      border: 2px dotted #c3c3c3;
+    }
+    .drag-over {
+      border-bottom: 4px solid #333;
+    }
+    .drag-enter {
+      color: #C93742;
+    }
+////
     .drag-and-drop-select-search {
         border: 4px solid #000;
         font-weight: bold;
@@ -157,8 +265,14 @@
         margin-bottom: 5px;
     }
 
-    .drags {
+    .dragging {
+      border: 4px dotted #c3c3c3;
+      box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      -webkit-box-sizing: border-box;
+    }
 
+    .drags {
         background-image: repeating-linear-gradient(-45deg, var(--pattern-bg-color), var(--pattern-bg-color) 40%, currentColor 0, currentColor 50%, var(--pattern-bg-color) 0);
         background-size: .8rem .8rem;
         position: relative;
@@ -167,16 +281,9 @@
         grid-column-gap: 1rem;
         grid-row-gap: 20px;
         grid-template-columns: 1fr 1fr 0.5fr;
-
-        ul[aria-dropeffect="move"] {
-            border-color: #68b;
-            background: #fff;
-        }
-
-        ul[aria-dropeffect="move"]:focus,
-        ul[aria-dropeffect="move"].dragover {
-            outline: none;
-            box-shadow: 0 0 0 1px #fff, 0 0 0 3px #68b;
+        ul {
+          display: flex;
+          flex-direction: column;
         }
         ul#results {
             min-height: 170px;
@@ -199,9 +306,41 @@
                 background: #000;
             }
         }
+
+                /* drop target state */
+        ul[aria-dropeffect="move"] {
+          border-color:#68b;
+          background:#fff;
+        }
+
+        /* drop target focus and dragover state */
+        ul[aria-dropeffect="move"]:focus,
+        ul[aria-dropeffect="move"].dragover
+        {
+          outline:none;
+          box-shadow:0 0 0 1px #fff, 0 0 0 3px #68b;
+        }
+
+        li[aria-grabbed="true"]
+        {
+          background:#5cc1a6;
+          color:#fff;
+        }
+
+        .item-dropzone-area {
+            height: 2rem;
+            background: #888;
+            opacity: 0.8;
+            animation-duration: 0.5s;
+            animation-name: nodeInserted;
+        }
+
         ul {
             border: 4px solid #000;
             padding: 6px;
+            &.drag-over {
+              border: 4px dotted #000;
+            }
 
             li {
                 display: flex;
