@@ -11,21 +11,60 @@
                    :placeholder="search_hint">
 
             <div class="drags">
-                <ul id="results">
-                    <li v-for="item in results" :key="item.id" :data-id="item.id" v-dragger draggable='true'>
-                        {{ item.name }}
-                    </li>
-                </ul>
+              <div
 
-                <ul id="all_selected" v-dragger>
-                    <li v-for="item in selected" :key="item.id" :data-id="item.id" draggable='true' >
-                        {{ item.name }}
-                    </li>
-                </ul>
+                class="btn-group list-group-item"
+                role="group"
+                aria-label="Basic example"
+              >
+                <button class="btn btn-secondary" @click="add">Add</button>
+                <button class="btn btn-secondary" @click="replace">Replace</button>
+              </div>
 
-                <ul id="delete" v-dragger>
-                    <i></i>
-                </ul>
+              <draggable
+                class="list-group"
+                tag="ul"
+                v-model="selected"
+                :list="selected"
+                v-bind="dragOptions"
+                group="selections"
+                @start="drag = true"
+                @end="drag = false"
+                @change="log"
+              >
+                <transition-group type="transition" :name="!drag ? 'flip-list' : null">
+                  <li
+                    class="list-group-item"
+                    v-for="(element, index) in selected"
+                    :key="element.id"
+                  >
+                    {{ element.name }}
+
+                    <button class="fa fa-times close" @click="removeAt(index)">remove</button>
+                  </li>
+                </transition-group>
+              </draggable>
+
+              <!-- <draggable id="results" class="list-group" :list="results" group="people" @change="log">
+                <div
+                  class="list-group-item"
+                  v-for="item in results"
+                  :key="item.id" :data-id="item.id"
+                >
+                  {{ item.name }}
+                </div>
+              </draggable> -->
+
+              <!-- <draggable id="all_selected" class="list-group" :list="selected" group="people" @change="log">
+                <div
+                  class="list-group-item"
+                  v-for="item in selected"
+                  :key="item.id" :data-id="item.id"
+                >
+                  {{ item.name }}
+                </div>
+              </draggable> -->
+
             </div>
 
         </div>
@@ -34,25 +73,16 @@
 
 <script>
     import axios from 'axios'
-    import Vue from 'vue'
+    import draggable from 'vuedraggable'
 
     export default {
       props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers'],
-        directives: {
-          dragger: {
-            bind: (el, bindings, vnode) => {
-              const vm = vnode.context;
-              el.addEventListener('dragstart', vm.handleDragStart, false);
-              el.addEventListener('dragenter', vm.handleDragEnter, false);
-              el.addEventListener('dragover', vm.handleDragOver, false);
-              el.addEventListener('dragleave', vm.handleDragLeave, false);
-              el.addEventListener('drop', vm.handleDrop, false);
-              el.addEventListener('dragend', vm.handleDragEnd, false);
-            }
-          }
-        },
+      components: {
+        draggable
+      },
         data() {
             return {
+                drag: false,
                 search: null,
                 shake_error: false,
                 results: [],
@@ -95,6 +125,16 @@
         mounted() {
 
         },
+        computed: {
+          dragOptions() {
+            return {
+              animation: 200,
+              group: "description",
+              disabled: false,
+              ghostClass: "ghost"
+            };
+    }
+        },
         methods: {
             fetch() {
                 if (this.search.length > 2) {
@@ -105,6 +145,9 @@
                         });
                 }
             },
+            change(e) {
+              console.log(e, "hey");
+            },
             persistChanges() {
                 this.http.post(this.data_post, {updated_slides: this.selected})
                     .then(response => {
@@ -113,62 +156,7 @@
                     .catch(error => {
                     });
             },
-            animate: function () {
-                this.shake_error = true;
-                setTimeout(() => {
-                    this.shake_error = false;
-                }, 1000);
-            },
-            handleDragStart: function (e) {
-                e.target.classList.add('dragging');
-                this._dragSrcEl = e.target;
-                e.dataTransfer.effectAllowed = 'move';
-                // Need to set to something or else drag doesn't start
-                e.dataTransfer.setData('text', '*');
-                this.drag_source = e.target.dataset.id;
-                this.drag_source_name = e.target.innerText;
-                this.element = e.target;
-                // if (typeof(this.vm[this.$params.dragStart]) === 'function') {
-                //   this.vm[this.$params.dragStart].call(this, e.target);
-                // }
-              },
-              handleDragOver: function (e) {
-                if (e.preventDefault) {
-                  // allows dropping
-                  e.preventDefault();
-                }
 
-                e.dataTransfer.dropEffect = 'move';
-                e.target.classList.add('drag-over');
-                e.dataTransfer.effectAllowed='move';
-                e.dataTransfer.setData("Text", '*');
-
-                // var src = e.dataTransfer.setData('text', '');
-                // if (typeof(this.vm[this.params.dragOver]) === 'function') {
-                //   this.vm[this.params.dragOver].call(this, e.target);
-                // }
-                return false;
-              },
-              handleDragEnter: function (e) {
-                // if (typeof(this.vm[this.params.dragEnter]) === 'function') {
-                //   this.vm[this.params.dragEnter].call(this, e.target);
-                // }
-                e.preventDefault();
-                e.target.classList.add('drag-enter');
-              },
-              handleDragLeave: function (e) {
-                // if (typeof(this.vm[this.params.dragLeave]) === 'function') {
-                //   this.vm[this.params.dragLeave].call(this, e.target);
-                // }
-                e.target.classList.remove('drag-enter');
-              },
-              handleDragEnd: function (e) {
-                e.target.classList.remove('dragging', 'drag-over', 'drag-enter');
-                this.element = null;
-                // if (typeof(this.vm[this.params.dragEnd]) === 'function') {
-                //   this.vm[this.params.dragEnd].call(this, e.target);
-                // }
-              },
               handleDrop: function (e) {
                 if (e.target.id == "delete") {
                   for (var i = this.selected.length - 1; i >= 0; --i) {
@@ -219,13 +207,25 @@
 
                 return false;
               },
-
-              isBefore: function(el1, el2) {
-                  if (el2.parentNode === el1.parentNode)
-                      for (var cur = el1.previousSibling; cur; cur = cur.previousSibling)
-                          if (cur === el2)
-                              return true;
-                  return false;
+              sort() {
+                this.selected = this.selected.sort((a, b) => a.order - b.order);
+              },
+              add: function() {
+                this.selected.push({ id: 666, name: "Juan" });
+              },
+              replace: function() {
+                this.list = [{ id: 653, name: "Edgard" }];
+              },
+              clone: function(el) {
+                return {
+                  name: el.name + " cloned"
+                };
+              },
+              removeAt(idx) {
+                this.selected.splice(idx, 1);
+              },
+              log: function(evt) {
+                window.console.log(evt);
               }
         }
     }
@@ -241,20 +241,7 @@
       -khtml-user-drag: element;
       -webkit-user-drag: element;
     }
-    li {
-      color: black;
-    }
-    .dragging {
-      opacity: 0.8;
-      color: #6894D1;
-      border: 2px dotted #c3c3c3;
-    }
-    .drag-over {
-      border-bottom: 4px solid #333;
-    }
-    .drag-enter {
-      color: #C93742;
-    }
+
 ////
     .drag-and-drop-select-search {
         border: 4px solid #000;
@@ -264,14 +251,6 @@
         width: 100%;
         margin-bottom: 5px;
     }
-
-    .dragging {
-      border: 4px dotted #c3c3c3;
-      box-sizing: border-box;
-      -moz-box-sizing: border-box;
-      -webkit-box-sizing: border-box;
-    }
-
     .drags {
         background-image: repeating-linear-gradient(-45deg, var(--pattern-bg-color), var(--pattern-bg-color) 40%, currentColor 0, currentColor 50%, var(--pattern-bg-color) 0);
         background-size: .8rem .8rem;
@@ -281,7 +260,7 @@
         grid-column-gap: 1rem;
         grid-row-gap: 20px;
         grid-template-columns: 1fr 1fr 0.5fr;
-        ul {
+        .list-group {
           display: flex;
           flex-direction: column;
         }
@@ -307,42 +286,14 @@
             }
         }
 
-                /* drop target state */
-        ul[aria-dropeffect="move"] {
-          border-color:#68b;
-          background:#fff;
-        }
-
-        /* drop target focus and dragover state */
-        ul[aria-dropeffect="move"]:focus,
-        ul[aria-dropeffect="move"].dragover
-        {
-          outline:none;
-          box-shadow:0 0 0 1px #fff, 0 0 0 3px #68b;
-        }
-
-        li[aria-grabbed="true"]
-        {
-          background:#5cc1a6;
-          color:#fff;
-        }
-
-        .item-dropzone-area {
-            height: 2rem;
-            background: #888;
-            opacity: 0.8;
-            animation-duration: 0.5s;
-            animation-name: nodeInserted;
-        }
-
-        ul {
+        .list-group {
             border: 4px solid #000;
             padding: 6px;
             &.drag-over {
               border: 4px dotted #000;
             }
 
-            li {
+            .list-group-item {
                 display: flex;
                 align-items: center;
                 padding: 1.6rem;
@@ -353,109 +304,41 @@
 
             }
 
-            li:hover {
+            .list-group-item:hover {
                 background-color: #d3d3d3;
                 cursor: move;
             }
 
             /* items focus state */
-            li:focus {
+            .list-group-item:focus {
                 outline: none;
                 box-shadow: 0 0 0 2px #68b, inset 0 0 0 1px #ddd;
             }
 
-            /* items grabbed state */
-            li[aria-grabbed="true"] {
-                background-color: #a3a3a3;
-                color: #fff;
-            }
 
-            @keyframes nodeInserted {
-                from {
-                    opacity: 0.2;
-                }
-                to {
-                    opacity: 0.8;
-                }
-            }
-
-            ul .item-dropzone-area {
-                height: 2rem;
-                background: #888;
-                opacity: 0.8;
-                animation-duration: 0.5s;
-                animation-name: nodeInserted;
-            }
         }
     }
 
-    .shake-error {
-        -webkit-animation: kf_shake 0.4s 1 linear;
-        -moz-animation: kf_shake 0.4s 1 linear;
-        -o-animation: kf_shake 0.4s 1 linear;
-    }
-
-    @-webkit-keyframes kf_shake {
-        0% {
-            -webkit-transform: translate(30px);
-        }
-        20% {
-            -webkit-transform: translate(-30px);
-        }
-        40% {
-            -webkit-transform: translate(15px);
-        }
-        60% {
-            -webkit-transform: translate(-15px);
-        }
-        80% {
-            -webkit-transform: translate(8px);
-        }
-        100% {
-            -webkit-transform: translate(0px);
-        }
-    }
-
-    @-moz-keyframes kf_shake {
-        0% {
-            -moz-transform: translate(30px);
-        }
-        20% {
-            -moz-transform: translate(-30px);
-        }
-        40% {
-            -moz-transform: translate(15px);
-        }
-        60% {
-            -moz-transform: translate(-15px);
-        }
-        80% {
-            -moz-transform: translate(8px);
-        }
-        100% {
-            -moz-transform: translate(0px);
-        }
-    }
-
-    @-o-keyframes kf_shake {
-        0% {
-            -o-transform: translate(30px);
-        }
-        20% {
-            -o-transform: translate(-30px);
-        }
-        40% {
-            -o-transform: translate(15px);
-        }
-        60% {
-            -o-transform: translate(-15px);
-        }
-        80% {
-            -o-transform: translate(8px);
-        }
-        100% {
-            -o-origin-transform: translate(0px);
-        }
-    }
-
+    .button {
+  margin-top: 35px;
+}
+.flip-list-move {
+  transition: transform 0.5s;
+}
+.no-move {
+  transition: transform 0s;
+}
+.ghost {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+.list-group {
+  min-height: 20px;
+}
+.list-group-item {
+  cursor: move;
+}
+.list-group-item i {
+  cursor: pointer;
+}
 </style>
