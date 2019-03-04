@@ -2,6 +2,8 @@
   "name": "@paperscissors/drag-and-drop-select",
   "version": "0.1.33",
   "main": "./src/DragAndDropSelect.vue",
+  "license": "(MIT OR Apache-2.0)",
+  "homepage": "https://github.com/paperscissors/Vue-Drag-And-Drop-Select",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",

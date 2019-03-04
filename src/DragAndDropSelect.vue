@@ -8,14 +8,14 @@
                 </div>
               </transition>
             </div>
-            <input type="text" v-model="search" class="drag-and-drop-select-search"
+            <input type="text" v-model="search" class="search-field"
                    :placeholder="search_hint">
 
             <div class="drags">
               <ul id="results" class="result-group" v-if="results.length > 0 && search != null">
                 <li class="result-group-item header"><h5>Search results for "{{ search }}"</h5> <button class="button-close" @click="results = []; search = null"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M23.954 21.03l-9.184-9.095 9.092-9.174-2.832-2.807-9.09 9.179-9.176-9.088-2.81 2.81 9.186 9.105-9.095 9.184 2.81 2.81 9.112-9.192 9.18 9.1z"/></svg></button></li>
                 <li class="result-group-item"
-                    v-for="(element, index) in results" v-if="resultNotSelected(element)"
+                    v-for="(element) in filteredResults"
                     :key="element.id"
                     :data-id="element.id">
                     {{ element.name }}
@@ -66,7 +66,6 @@
             return {
                 drag: false,
                 search: null,
-                shake_error: false,
                 results: [],
                 data_search: null,
                 search_hint:null,
@@ -76,8 +75,6 @@
                 sortable: null,
                 selected: null,
                 headers: null,
-                drag_source: null,
-                drag_source_name: null,
                 element: null,
                 http:null
             }
@@ -108,6 +105,11 @@
 
         },
         computed: {
+          filteredResults() {
+            return this.results.filter((item) => {
+              return typeof this.selected.find(o => o.id === item.id) === 'undefined';
+            });
+          },
           dragOptions() {
             return {
               animation: 200,
@@ -123,12 +125,9 @@
                     this.http.get(this.data_search, {params: {search: this.search}})
                         .then(response => this.results = response.data.data)
                         .catch(error => {
-                            console.log(error)
+                            window.console.log(error);
                         });
                 }
-            },
-            change(e) {
-              console.log(e, "hey");
             },
             persistChanges() {
                 this.http.post(this.data_post, {updated_slides: this.selected})
@@ -139,70 +138,12 @@
                         }, 1600);
                     })
                     .catch(error => {
+                      window.console.log(error);
                     });
 
                 this.results = [];
                 this.search = null;
             },
-
-              handleDrop: function (e) {
-                if (e.target.id == "delete") {
-                  for (var i = this.selected.length - 1; i >= 0; --i) {
-                      if (this.selected[i].id == this.drag_source) {
-                          this.selected.splice(i,1);
-                      }
-                  }
-                  this.persistChanges();
-                }
-
-                if (e.target.id == "all_selected") {
-                  if (this.isBefore(this.element, e.target)) {
-                    console.log("one", this.element, e.target)
-
-                    //e.target.parentNode.insertBefore(this.element, e.target);
-                  } else {
-                    console.log("two", this.element, e.target.nextSibling)
-                    for (var i = this.selected.length - 1; i >= 0; --i) {
-                        if (this.selected[i].id == this.drag_source) {
-                            this.selected.splice(i,1);
-                        }
-                    }
-
-                    this.selected.push({id: this.drag_source, name: this.drag_source_name});
-                    //e.target.parentNode.insertBefore(this.element, e.target.nextSibling);
-                  }
-
-                  // if selected is the same count as the LIs in this, we need to reserialize in order, not push
-
-                  this.persistChanges();
-                }
-
-                e.target.classList.remove('dragging', 'drag-over', 'drag-enter');
-
-                var elems = document.querySelectorAll(".drag-over");
-`
-                [].forEach.call(elems, function(el) {
-                    el.classList.remove("hover");
-                });
-`
-
-                this.drag_source = this.drag_source_name = null; // maybe we set the text like this, too?
-
-                if (e.stopPropagation) {
-                  // stops the browser from redirecting.
-                  e.stopPropagation();
-                }
-
-                return false;
-              },
-              resultNotSelected(option) {
-                for (var i = this.selected.length - 1; i >= 0; --i) {
-                    if (this.selected[i].id == option.id) {
-                        return false;
-                    }
-                }
-                return true;
-              },
               add: function(e) {
                 this.selected.push({ id: e.srcElement.parentElement.dataset.id, name: e.srcElement.parentElement.innerText });
                 this.persistChanges();
@@ -211,7 +152,7 @@
                 this.selected.splice(idx, 1);
                 this.persistChanges();
               },
-              changed: function(evt) {
+              changed: function() {
                 this.persistChanges(); // all we need to do here
               }
         }
@@ -234,11 +175,11 @@
       max-width: 500px;
     }
 ////
-    .drag-and-drop-select-search {
+    .search-field {
         border: 4px solid #000;
         font-weight: bold;
         font-size: 18px;
-        padding: 10px;
+        padding: 10px .33em 10px .33em;
         width: 100%;
         margin-bottom: 5px;
     }
@@ -247,14 +188,12 @@
       position: absolute;
       z-index: 1005;
       width: 100%;
-
-      display: flex; // make us of Flexbox
-      align-items: center; // does vertically center the desired content
-      justify-content: center; // horizontally centers single line items
-      text-align: center; // optional, but helps horizontally center text that breaks into multiple lines
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
 
       .content {
-        // display: flex;
         margin: auto;
         opacity: 0.98;
         font-weight: 600;
@@ -266,7 +205,6 @@
         width: 200px;
         text-align: center;
         padding: 10px;
-
       }
     }
 
