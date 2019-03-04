@@ -76,20 +76,19 @@
                 selected: null,
                 headers: null,
                 element: null,
-                http:null
+                http:null,
+                search_timeout:null
             }
         },
         name: "DragAndDropSelect",
         watch: {
             search(after, before) {
                 if (after !== before) {
-                  if (typeof timeout !== 'undefined') clearTimeout(timeout);
-
+                  clearTimeout(this.search_timeout);
                   // Make a new timeout set to go off in 800ms
-                  let timeout = setTimeout(() => {
+                  this.search_timeout = setTimeout(() => {
                       this.fetch();
                   }, 500);
-
                 }
             }
         },
