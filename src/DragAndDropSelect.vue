@@ -1,27 +1,31 @@
 <template>
-    <div class="drag-and-drop-select row" ref="selector">
+    <div class="drag-and-drop-select" ref="selector">
         <div class="col-md-12">
-            <div class="alert alert-primary" role="alert" v-if="response">
-                {{ response }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="message" role="alert" v-if="response">
+              <transition name="fade">
+                <div class="content">
+                  <p>Changes saved.</p>
+                </div>
+              </transition>
             </div>
             <input type="text" v-model="search" class="drag-and-drop-select-search"
                    :placeholder="search_hint">
 
             <div class="drags">
-              <div
+              <ul id="results" class="result-group" v-if="results.length > 0 && search != null">
+                <li class="result-group-item header"><h5>Search results for "{{ search }}"</h5> <button class="button-close" @click="results = []; search = null"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M23.954 21.03l-9.184-9.095 9.092-9.174-2.832-2.807-9.09 9.179-9.176-9.088-2.81 2.81 9.186 9.105-9.095 9.184 2.81 2.81 9.112-9.192 9.18 9.1z"/></svg></button></li>
+                <li class="result-group-item"
+                    v-for="(element, index) in results" v-if="resultNotSelected(element)"
+                    :key="element.id"
+                    :data-id="element.id">
+                    {{ element.name }}
 
-                class="btn-group list-group-item"
-                role="group"
-                aria-label="Basic example"
-              >
-                <button class="btn btn-secondary" @click="add">Add</button>
-                <button class="btn btn-secondary" @click="replace">Replace</button>
-              </div>
+                    <button class="action-button" @click="add">add</button>
+                  </li>
+              </ul>
 
               <draggable
+                v-if="selected.length > 0"
                 class="list-group"
                 tag="ul"
                 v-model="selected"
@@ -30,7 +34,7 @@
                 group="selections"
                 @start="drag = true"
                 @end="drag = false"
-                @change="log"
+                @change="changed"
               >
                 <transition-group type="transition" :name="!drag ? 'flip-list' : null">
                   <li
@@ -40,33 +44,11 @@
                   >
                     {{ element.name }}
 
-                    <button class="fa fa-times close" @click="removeAt(index)">remove</button>
+                    <button class="action-button" @click="removeAt(index)">remove</button>
                   </li>
                 </transition-group>
               </draggable>
-
-              <!-- <draggable id="results" class="list-group" :list="results" group="people" @change="log">
-                <div
-                  class="list-group-item"
-                  v-for="item in results"
-                  :key="item.id" :data-id="item.id"
-                >
-                  {{ item.name }}
-                </div>
-              </draggable> -->
-
-              <!-- <draggable id="all_selected" class="list-group" :list="selected" group="people" @change="log">
-                <div
-                  class="list-group-item"
-                  v-for="item in selected"
-                  :key="item.id" :data-id="item.id"
-                >
-                  {{ item.name }}
-                </div>
-              </draggable> -->
-
             </div>
-
         </div>
     </div>
 </template>
@@ -133,11 +115,11 @@
               disabled: false,
               ghostClass: "ghost"
             };
-    }
+          }
         },
         methods: {
             fetch() {
-                if (this.search.length > 2) {
+                if (this.search !== null && this.search.length > 2) {
                     this.http.get(this.data_search, {params: {search: this.search}})
                         .then(response => this.results = response.data.data)
                         .catch(error => {
@@ -152,9 +134,15 @@
                 this.http.post(this.data_post, {updated_slides: this.selected})
                     .then(response => {
                         this.response = String(response.data);
+                        setTimeout(() => {
+                          this.response = null;
+                        }, 1600);
                     })
                     .catch(error => {
                     });
+
+                this.results = [];
+                this.search = null;
             },
 
               handleDrop: function (e) {
@@ -207,25 +195,24 @@
 
                 return false;
               },
-              sort() {
-                this.selected = this.selected.sort((a, b) => a.order - b.order);
+              resultNotSelected(option) {
+                for (var i = this.selected.length - 1; i >= 0; --i) {
+                    if (this.selected[i].id == option.id) {
+                        return false;
+                    }
+                }
+                return true;
               },
-              add: function() {
-                this.selected.push({ id: 666, name: "Juan" });
-              },
-              replace: function() {
-                this.list = [{ id: 653, name: "Edgard" }];
-              },
-              clone: function(el) {
-                return {
-                  name: el.name + " cloned"
-                };
+              add: function(e) {
+                this.selected.push({ id: e.srcElement.parentElement.dataset.id, name: e.srcElement.parentElement.innerText });
+                this.persistChanges();
               },
               removeAt(idx) {
                 this.selected.splice(idx, 1);
+                this.persistChanges();
               },
-              log: function(evt) {
-                window.console.log(evt);
+              changed: function(evt) {
+                this.persistChanges(); // all we need to do here
               }
         }
     }
@@ -242,6 +229,10 @@
       -webkit-user-drag: element;
     }
 
+    .drag-and-drop-select {
+      position: relative;
+      max-width: 500px;
+    }
 ////
     .drag-and-drop-select-search {
         border: 4px solid #000;
@@ -251,42 +242,106 @@
         width: 100%;
         margin-bottom: 5px;
     }
+
+    .message {
+      position: absolute;
+      z-index: 1005;
+      width: 100%;
+
+      display: flex; // make us of Flexbox
+      align-items: center; // does vertically center the desired content
+      justify-content: center; // horizontally centers single line items
+      text-align: center; // optional, but helps horizontally center text that breaks into multiple lines
+
+      .content {
+        // display: flex;
+        margin: auto;
+        opacity: 0.98;
+        font-weight: 600;
+        margin-top: 20px;
+        align-items: center;
+        justify-content: center;
+        background-color: pink;
+        color: #000;
+        width: 200px;
+        text-align: center;
+        padding: 10px;
+
+      }
+    }
+
     .drags {
-        background-image: repeating-linear-gradient(-45deg, var(--pattern-bg-color), var(--pattern-bg-color) 40%, currentColor 0, currentColor 50%, var(--pattern-bg-color) 0);
-        background-size: .8rem .8rem;
-        position: relative;
         color: #212529;
-        display: grid;
-        grid-column-gap: 1rem;
-        grid-row-gap: 20px;
-        grid-template-columns: 1fr 1fr 0.5fr;
+        width: 100%;
         .list-group {
           display: flex;
           flex-direction: column;
         }
+
+        .action-button {
+          border: 2px solid #000;
+          color: #000;
+          padding: 6px;
+          background: transparent;
+          text-transform: uppercase;
+          font-weight: 700;
+          font-size: 10px;
+          max-height: 28px;
+          letter-spacing: 0.07em;
+          &:hover {
+            color: #fff;
+            background-color: #000;
+          }
+        }
+
         ul#results {
-            min-height: 170px;
-            background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMjMuODMyIDE5LjY0MWwtNi44MjEtNi44MjFjMi44MzQtNS44NzgtMS40NS0xMi44Mi04LjA2NS0xMi44Mi00LjkzMiAwLTguOTQ2IDQuMDE0LTguOTQ2IDguOTQ3IDAgNi41MDggNi43MzkgMTAuNzk4IDEyLjYwMSA4LjE2Nmw2Ljg3OSA2Ljg3OWMxLjk1Ny4xNjQgNC41Mi0yLjMyNiA0LjM1Mi00LjM1MXptLTE0Ljg4Ni00LjcyMWMtMy4yOTMgMC01Ljk3My0yLjY4LTUuOTczLTUuOTczczIuNjgtNS45NzMgNS45NzMtNS45NzNjMy4yOTQgMCA1Ljk3NCAyLjY4IDUuOTc0IDUuOTczcy0yLjY4IDUuOTczLTUuOTc0IDUuOTczeiIvPjwvc3ZnPg==") no-repeat center center;
-            background-size: 50px 50px;
+            background-color: #fff;
+            max-height: 218px;
+            min-height: 218px;
+            overflow-y: auto;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            top: 38px;
         }
-        ul#selected_items {
-            min-height: 170px;
-            background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTIuMDE1IDdjNC43NTEgMCA4LjA2MyAzLjAxMiA5LjUwNCA0LjYzNi0xLjQwMSAxLjgzNy00LjcxMyA1LjM2NC05LjUwNCA1LjM2NC00LjQyIDAtNy45My0zLjUzNi05LjQ3OC01LjQwNyAxLjQ5My0xLjY0NyA0LjgxNy00LjU5MyA5LjQ3OC00LjU5M3ptMC0yYy03LjU2OSAwLTEyLjAxNSA2LjU1MS0xMi4wMTUgNi41NTFzNC44MzUgNy40NDkgMTIuMDE1IDcuNDQ5YzcuNzMzIDAgMTEuOTg1LTcuNDQ5IDExLjk4NS03LjQ0OXMtNC4yOTEtNi41NTEtMTEuOTg1LTYuNTUxem0tLjAxNSAzYy0yLjIxIDAtNCAxLjc5MS00IDRzMS43OSA0IDQgNGMyLjIwOSAwIDQtMS43OTEgNC00cy0xLjc5MS00LTQtNHptLS4wMDQgMy45OTljLS41NjQuNTY0LTEuNDc5LjU2NC0yLjA0NCAwcy0uNTY1LTEuNDggMC0yLjA0NGMuNTY0LS41NjQgMS40NzktLjU2NCAyLjA0NCAwcy41NjUgMS40NzkgMCAyLjA0NHoiLz48L3N2Zz4=") no-repeat center center;
-            background-size: 50px 50px;
-        }
-        ul#delete {
-            min-height: 170px;
-            max-height: 170px;
-            background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMyA2djE4aDE4di0xOGgtMTh6bTUgMTRjMCAuNTUyLS40NDggMS0xIDFzLTEtLjQ0OC0xLTF2LTEwYzAtLjU1Mi40NDgtMSAxLTFzMSAuNDQ4IDEgMXYxMHptNSAwYzAgLjU1Mi0uNDQ4IDEtMSAxcy0xLS40NDgtMS0xdi0xMGMwLS41NTIuNDQ4LTEgMS0xczEgLjQ0OCAxIDF2MTB6bTUgMGMwIC41NTItLjQ0OCAxLTEgMXMtMS0uNDQ4LTEtMXYtMTBjMC0uNTUyLjQ0OC0xIDEtMXMxIC40NDggMSAxdjEwem00LTE4djJoLTIwdi0yaDUuNzExYy45IDAgMS42MzEtMS4wOTkgMS42MzEtMmg1LjMxNWMwIC45MDEuNzMgMiAxLjYzMSAyaDUuNzEyeiIvPjwvc3ZnPg==") no-repeat center center;
 
-            background-size: 50px 50px;
+        .result-group {
+            width: 100%;
+            border: 4px solid #000;
+            padding: 6px;
 
-            &:hover, &:focus {
-                background: #000;
+            .result-group-item {
+                display: grid;
+                grid-template-columns: 0.8fr .2fr;
+                padding: 0.7rem;
+                border-bottom: 2px solid #000;
+                color: #000;
+                font-weight: bold;
+                margin-bottom: 3px;
+                align-items: center;
+                &.header {
+                  h5 {
+                    margin: 0px;
+                  }
+
+                  .button-close {
+                    border: 0px;
+                    background: transparent;
+                    height: 15px;
+                    width: 15px;
+                    svg {
+                      width: 15px;
+                    }
+                    margin-left: 72px;
+                    margin-top: -8px;
+                    &:hover { cursor: pointer; }
+                  }
+                }
             }
-        }
+          }
 
         .list-group {
+            width: 100%;
             border: 4px solid #000;
             padding: 6px;
             &.drag-over {
@@ -294,9 +349,11 @@
             }
 
             .list-group-item {
-                display: flex;
+                display: grid;
+                grid-template-columns: 0.8fr .2fr;
+                grid-column-gap: 20px;
                 align-items: center;
-                padding: 1.6rem;
+                padding: 1.0rem;
                 color: #000;
                 font-weight: bold;
                 background-color: #e3e3e3;
@@ -340,5 +397,12 @@
 }
 .list-group-item i {
   cursor: pointer;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 1s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
 }
 </style>
