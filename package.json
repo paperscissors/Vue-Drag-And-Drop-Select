@@ -1,6 +1,6 @@
 {
   "name": "@paperscissors/drag-and-drop-select",
-  "version": "0.1.34",
+  "version": "0.1.35",
   "main": "./src/DragAndDropSelect.vue",
   "license": "(MIT OR Apache-2.0)",
   "homepage": "https://github.com/paperscissors/Vue-Drag-And-Drop-Select",
