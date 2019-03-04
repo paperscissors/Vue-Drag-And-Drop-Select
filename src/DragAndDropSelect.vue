@@ -1,6 +1,6 @@
 <template>
     <div class="drag-and-drop-select" ref="selector">
-        <div class="col-md-12">
+        <div class="components-grid">
             <div class="message" role="alert" v-if="response">
               <transition name="fade">
                 <div class="content">
@@ -182,7 +182,9 @@
         width: 100%;
         margin-bottom: 5px;
     }
-
+    .components-grid {
+      display: grid;
+    }
     .message {
       position: absolute;
       z-index: 1005;
@@ -239,7 +241,6 @@
             position: absolute;
             width: 100%;
             z-index: 1000;
-            top: 38px;
         }
 
         .result-group {
