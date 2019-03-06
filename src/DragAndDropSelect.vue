@@ -8,7 +8,7 @@
                 </div>
               </transition>
             </div>
-            <input type="text" v-model="search" class="search-field"
+            <input type="text" v-model="search" class="search-field" v-if="selection_limit > selected.length"
                    :placeholder="search_hint">
 
             <div class="drags">
@@ -49,6 +49,7 @@
                 </transition-group>
               </draggable>
             </div>
+            <h4 v-if="selection_limit <= selected.length">Max of {{ selection_limit }} items selected.</h4>
         </div>
     </div>
 </template>
@@ -58,7 +59,7 @@
     import draggable from 'vuedraggable'
 
     export default {
-      props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers'],
+      props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers', 'limit'],
       components: {
         draggable
       },
@@ -77,7 +78,8 @@
                 headers: null,
                 element: null,
                 http:null,
-                search_timeout:null
+                search_timeout:null,
+                selection_limit:999
             }
         },
         name: "DragAndDropSelect",
@@ -98,6 +100,7 @@
           this.search_hint = this.hint;
           this.selected = this.selected_items;
           this.headers = this.auth_headers;
+          if (this.limit) this.selection_limit = this.limit;
           this.http = axios.create(this.headers);
         },
         mounted() {
@@ -153,7 +156,11 @@
               },
               changed: function() {
                 this.persistChanges(); // all we need to do here
+              },
+              maybePluralize: (count, noun, suffix = 's') => {
+                `${count} ${noun}${count !== 1 ? suffix : ''}`;
               }
+
         }
     }
 </script>
@@ -184,6 +191,9 @@
     }
     .components-grid {
       display: grid;
+      h4 {
+        text-align:center;
+      }
     }
     .message {
       position: absolute;

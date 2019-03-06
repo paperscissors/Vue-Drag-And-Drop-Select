@@ -18,7 +18,8 @@ new Vue({
        selected_items: items,
        search_uri: 'http://revolver.test/api/search/products',
        post_uri: 'http://revolver.test/api/front/slideshow',
-       hint: 'Search by Revolver code, label code, or UPC'
+       hint: 'Search by Revolver code, label code, or UPC',
+       limit: 2
       },
    };
    return createElement(DragAndDropSelect, context);
