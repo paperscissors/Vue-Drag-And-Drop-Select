@@ -1,6 +1,6 @@
 {
   "name": "@paperscissors/drag-and-drop-select",
-  "version": "0.1.40",
+  "version": "0.1.41",
   "main": "./src/DragAndDropSelect.vue",
   "license": "(MIT OR Apache-2.0)",
   "homepage": "https://github.com/paperscissors/Vue-HTML5-Audio-Player",
