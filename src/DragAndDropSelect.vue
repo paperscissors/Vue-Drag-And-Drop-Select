@@ -1,5 +1,5 @@
 <template>
-    <div class="drag-and-drop-select" ref="selector">
+    <div class="drag-and-drop-select" ref="selector" v-if="visibility">
         <div class="components-grid">
             <div class="message" role="alert" v-if="response">
               <transition name="fade">
@@ -20,7 +20,7 @@
                     :data-id="element.id">
                     {{ element.name }}
 
-                    <button class="action-button" @click="add">add</button>
+                    <button class="action-button" @click.stop.prevent="add">add</button>
                   </li>
               </ul>
 
@@ -44,7 +44,7 @@
                   >
                     {{ element.name }}
 
-                    <button class="action-button" @click="removeAt(index)">remove</button>
+                    <button class="action-button" @click.stop.prevent="removeAt(index)">remove</button>
                   </li>
                 </transition-group>
               </draggable>
@@ -59,7 +59,7 @@
     import draggable from 'vuedraggable'
 
     export default {
-      props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers', 'limit'],
+      props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers', 'visibility', 'limit'],
       components: {
         draggable
       },
@@ -132,16 +132,20 @@
                 }
             },
             persistChanges() {
-                this.http.post(this.data_post, {updated_slides: this.selected})
-                    .then(response => {
-                        this.response = String(response.data);
-                        setTimeout(() => {
-                          this.response = null;
-                        }, 1600);
-                    })
-                    .catch(error => {
-                      window.console.log(error);
-                    });
+                if (this.data_post) {
+                  this.http.post(this.data_post, {updated_slides: this.selected})
+                      .then(response => {
+                          this.response = String(response.data);
+                          setTimeout(() => {
+                            this.response = null;
+                          }, 1600);
+                      })
+                      .catch(error => {
+                        window.console.log(error);
+                      });
+                }
+
+                this.$emit('selected', this.selected)
 
                 this.results = [];
                 this.search = null;
