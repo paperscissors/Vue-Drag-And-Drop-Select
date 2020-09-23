@@ -63,7 +63,7 @@
       components: {
         draggable
       },
-        data() {
+        data () {
             return {
                 drag: false,
                 search: null,
