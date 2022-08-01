@@ -151,7 +151,7 @@
                 this.search = null;
             },
               add: function(e) {
-                this.selected.push({ id: e.srcElement.parentElement.dataset.id, name: e.srcElement.parentElement.innerText });
+                this.selected.unshift({ id: e.srcElement.parentElement.dataset.id, name: e.srcElement.parentElement.innerText });
                 this.persistChanges();
               },
               removeAt(idx) {

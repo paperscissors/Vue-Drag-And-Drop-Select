@@ -10,7 +10,7 @@ const auth = {
 };
 
 // this is the format for passing a list
-const items = [{"name":"abcd","id":14},{"name":"xyz", 15}];
+const items = [];
 
 new Vue({
   render: createElement => {

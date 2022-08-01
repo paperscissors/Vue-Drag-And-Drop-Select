@@ -1,6 +1,6 @@
 {
   "name": "@paperscissors/drag-and-drop-select",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "./src/DragAndDropSelect.vue",
   "license": "(MIT OR Apache-2.0)",
   "homepage": "https://github.com/paperscissors/Vue-Drag-And-Drop-Select",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
-    "node-sass": "^7.0.0",
+    "node-sass": "^4.0.0",
     "sass-loader": "^7.1.0",
     "vue": "^2.6.6",
     "vue-draggable": "^2.0.0-beta.1",
