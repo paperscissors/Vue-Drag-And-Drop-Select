@@ -71,11 +71,16 @@ createApp({
 - `authHeaders` (`Object`, default `{}`)
 - `visibility` (`Boolean`, default `true`)
 - `limit` (`Number`, default `999`)
+- `persistPayloadKey` (`String`, default `"selectedItems"`)
 
 ### Emitted events
 
 - `selected`: emits the updated selected item array
-- `update:selectedItems`: emits the updated selected item array for parent syncing
+- `update:selectedItems`: emits the updated selected item array for parent syncing (`selected` is retained for compatibility)
+
+## Browser support
+
+Built for modern browsers (Browserslist: `defaults`, excluding IE11).
 
 ## Vue 2 -> Vue 3 migration notes
 
@@ -84,5 +89,5 @@ createApp({
 - `node-sass` was replaced with `sass`.
 - Drag-and-drop integration now uses `vuedraggable` Vue 3 API.
 - Props were normalized to camelCase (`selectedItems`, `searchUri`, `postUri`, `authHeaders`).
-- Persist payload key changed from `updated_slides` to `selectedItems`.
+- Persist payload key now defaults to `selectedItems` and is configurable through `persistPayloadKey` (set to `updated_slides` for legacy integrations).
 - Component internals no longer mutate incoming prop references directly.

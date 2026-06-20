@@ -93,6 +93,10 @@ export default {
     limit: {
       type: Number,
       default: 999
+    },
+    persistPayloadKey: {
+      type: String,
+      default: 'selectedItems'
     }
   },
   emits: ['selected', 'update:selectedItems'],
@@ -174,7 +178,7 @@ export default {
     },
     persistChanges() {
       if (this.dataPost) {
-        this.http.post(this.dataPost, { selectedItems: this.selected })
+        this.http.post(this.dataPost, { [this.persistPayloadKey]: this.selected })
           .then((response) => {
             this.response = String(response.data);
             setTimeout(() => {

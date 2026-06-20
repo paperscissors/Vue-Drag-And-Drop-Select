@@ -126,4 +126,13 @@ describe('DragAndDropSelect', () => {
     expect(wrapper.vm.selected).toHaveLength(0);
     expect(post).toHaveBeenCalled();
   });
+
+  it('supports custom persistence payload key', async () => {
+    const { wrapper, post } = mountComponent({ persistPayloadKey: 'updated_slides' });
+
+    wrapper.vm.add({ id: '2', name: 'Two' });
+    await nextTick();
+
+    expect(post).toHaveBeenCalledWith('/post', { updated_slides: wrapper.vm.selected });
+  });
 });
