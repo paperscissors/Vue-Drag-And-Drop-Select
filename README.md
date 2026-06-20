@@ -84,4 +84,5 @@ createApp({
 - `node-sass` was replaced with `sass`.
 - Drag-and-drop integration now uses `vuedraggable` Vue 3 API.
 - Props were normalized to camelCase (`selectedItems`, `searchUri`, `postUri`, `authHeaders`).
+- Persist payload key changed from `updated_slides` to `selectedItems`.
 - Component internals no longer mutate incoming prop references directly.

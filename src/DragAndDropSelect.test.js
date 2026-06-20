@@ -79,7 +79,7 @@ describe('DragAndDropSelect', () => {
     await nextTick();
 
     expect(wrapper.vm.selected[0]).toEqual({ id: '2', name: 'Two' });
-    expect(post).toHaveBeenCalledWith('/post', { updated_slides: wrapper.vm.selected });
+    expect(post).toHaveBeenCalledWith('/post', { selectedItems: wrapper.vm.selected });
     expect(wrapper.emitted('selected')).toBeTruthy();
     expect(wrapper.emitted('update:selectedItems')).toBeTruthy();
   });
@@ -94,6 +94,28 @@ describe('DragAndDropSelect', () => {
     await Promise.resolve();
 
     expect(get).toHaveBeenCalledWith('/search', { params: { search: 'abcd' } });
+  });
+
+  it('normalizes malformed search payloads to an empty result set', async () => {
+    const { wrapper, get } = mountComponent();
+    get.mockResolvedValueOnce({ data: { invalid: true } });
+
+    wrapper.vm.search = 'abcd';
+    await wrapper.vm.fetch();
+
+    expect(wrapper.vm.results).toEqual([]);
+  });
+
+  it('handles search failures without throwing', async () => {
+    const logSpy = vi.spyOn(window.console, 'log').mockImplementation(() => {});
+    const { wrapper, get } = mountComponent();
+    get.mockRejectedValueOnce(new Error('network'));
+
+    wrapper.vm.search = 'abcd';
+    await wrapper.vm.fetch();
+
+    expect(logSpy).toHaveBeenCalled();
+    logSpy.mockRestore();
   });
 
   it('removes selected items and persists', () => {

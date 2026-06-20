@@ -9,11 +9,11 @@
         </transition>
       </div>
       <input
-        v-if="selection_limit > selected.length"
+        v-if="selectionLimit > selected.length"
         v-model="search"
         type="text"
         class="search-field"
-        :placeholder="search_hint"
+        :placeholder="searchHint"
       >
 
       <div class="drags">
@@ -51,7 +51,7 @@
           </template>
         </draggable>
       </div>
-      <h4 v-if="selection_limit <= selected.length">Max of {{ selection_limit }} items selected.</h4>
+      <h4 v-if="selectionLimit <= selected.length">Max of {{ selectionLimit }} items selected.</h4>
     </div>
   </div>
 </template>
@@ -100,14 +100,14 @@ export default {
     return {
       search: null,
       results: [],
-      search_hint: this.hint,
-      data_post: this.postUri,
-      data_search: this.searchUri,
+      searchHint: this.hint,
+      dataPost: this.postUri,
+      dataSearch: this.searchUri,
       response: null,
       selected: [],
       http: axios.create(this.authHeaders),
-      search_timeout: null,
-      selection_limit: this.limit || 999
+      searchTimeout: null,
+      selectionLimit: this.limit || 999
     };
   },
   computed: {
@@ -137,35 +137,44 @@ export default {
       if (after === before) {
         return;
       }
-      clearTimeout(this.search_timeout);
-      this.search_timeout = setTimeout(() => {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
         this.fetch();
       }, 500);
     }
   },
   beforeUnmount() {
-    clearTimeout(this.search_timeout);
+    clearTimeout(this.searchTimeout);
   },
   methods: {
+    normalizeSearchResults(response) {
+      if (Array.isArray(response?.data?.data)) {
+        return response.data.data;
+      }
+      if (Array.isArray(response?.data)) {
+        return response.data;
+      }
+      return [];
+    },
     clearSearch() {
       this.results = [];
       this.search = null;
     },
     fetch() {
       if (this.search !== null && this.search.length > 2) {
-        this.http.get(this.data_search, { params: { search: this.search } })
+        return this.http.get(this.dataSearch, { params: { search: this.search } })
           .then((response) => {
-            const data = response?.data?.data ?? response?.data ?? [];
-            this.results = Array.isArray(data) ? data : [];
+            this.results = this.normalizeSearchResults(response);
           })
           .catch((error) => {
             window.console.log(error);
           });
       }
+      return Promise.resolve();
     },
     persistChanges() {
-      if (this.data_post) {
-        this.http.post(this.data_post, { updated_slides: this.selected })
+      if (this.dataPost) {
+        this.http.post(this.dataPost, { selectedItems: this.selected })
           .then((response) => {
             this.response = String(response.data);
             setTimeout(() => {
