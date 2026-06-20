@@ -1,55 +1,79 @@
 {
   "name": "@paperscissors/drag-and-drop-select",
-  "version": "0.2.1",
-  "main": "./src/DragAndDropSelect.vue",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/drag-and-drop-select.cjs.js",
+  "module": "./dist/drag-and-drop-select.es.js",
+  "unpkg": "./dist/drag-and-drop-select.umd.js",
+  "exports": {
+    ".": {
+      "import": "./dist/drag-and-drop-select.es.js",
+      "require": "./dist/drag-and-drop-select.cjs.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "license": "(MIT OR Apache-2.0)",
   "homepage": "https://github.com/paperscissors/Vue-Drag-And-Drop-Select",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "build-bundle": "vue-cli-service build --target lib --name DragAndDropSelect src/DragAndDropSelect.vue",
-    "lint": "vue-cli-service lint"
+    "dev": "vite",
+    "serve": "vite",
+    "build": "vite build",
+    "build-bundle": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .js,.vue"
   },
   "dependencies": {
-    "axios": "^0.21.1",
-    "node-sass": "^4.0.0",
-    "sass-loader": "^7.1.0",
-    "vue": "^2.6.6",
-    "vue-draggable": "^2.0.0-beta.1",
-    "vue-loader": "^15.1.0",
-    "vuedraggable": "^2.18.1"
+    "axios": "^1.7.7",
+    "vuedraggable": "^4.1.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.4.0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.4.0",
-    "@vue/cli-plugin-eslint": "^3.4.0",
-    "@vue/cli-service": "^3.4.0",
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.8.0",
-    "eslint-plugin-vue": "^5.0.0",
-    "vue-template-compiler": "^2.5.21"
+    "@vitejs/plugin-vue": "^5.1.4",
+    "@vue/compiler-sfc": "^3.5.13",
+    "@vue/test-utils": "^2.4.6",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.29.1",
+    "jsdom": "^25.0.1",
+    "sass": "^1.79.4",
+    "sass-loader": "^16.0.2",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.1",
+    "vue": "^3.5.13"
   },
   "eslintConfig": {
     "root": true,
     "env": {
+      "browser": true,
+      "es2022": true,
       "node": true
     },
     "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
+      "eslint:recommended",
+      "plugin:vue/vue3-recommended"
+    ],
+    "ignorePatterns": [
+      "dist/",
+      "coverage/"
     ],
     "rules": {},
     "parserOptions": {
-      "parser": "babel-eslint"
+      "ecmaVersion": "latest",
+      "sourceType": "module"
     }
   },
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {}
-    }
+  "vitest": {
+    "environment": "jsdom",
+    "globals": true
   },
   "browserslist": [
     "> 1%",
     "last 2 versions",
-    "not ie <= 8"
+    "not ie <= 11"
   ]
 }
