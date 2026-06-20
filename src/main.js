@@ -1,5 +1,5 @@
-import Vue from 'vue'
-import DragAndDropSelect from './DragAndDropSelect'
+import { createApp, h } from 'vue';
+import DragAndDropSelect from './DragAndDropSelect.vue';
 
 // if you want to pass auth headers, this is how
 const auth = {
@@ -12,18 +12,18 @@ const auth = {
 // this is the format for passing a list
 const items = [];
 
-new Vue({
-  render: createElement => {
+createApp({
+ render: () => {
    const context = {
      props: {
-       auth_headers: auth,
-       selected_items: items,
-       search_uri: '...',
-       post_uri: '...',
+       authHeaders: auth,
+       selectedItems: items,
+       searchUri: '...',
+       postUri: '...',
        hint: 'Search by field name a, b, c',
        limit: 5
-      },
+     }
    };
-   return createElement(DragAndDropSelect, context);
- },
-}).$mount('#app')
+   return h(DragAndDropSelect, context.props);
+ }
+}).mount('#app');

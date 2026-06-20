@@ -1,172 +1,213 @@
 <template>
-    <div class="drag-and-drop-select" ref="selector" v-if="visibility">
-        <div class="components-grid">
-            <div class="message" role="alert" v-if="response">
-              <transition name="fade">
-                <div class="content">
-                  <p>Changes saved.</p>
-                </div>
-              </transition>
-            </div>
-            <input type="text" v-model="search" class="search-field" v-if="selection_limit > selected.length"
-                   :placeholder="search_hint">
+  <div v-if="visibility" ref="selector" class="drag-and-drop-select">
+    <div class="components-grid">
+      <div v-if="response" class="message" role="alert">
+        <transition name="fade">
+          <div v-if="response" class="content">
+            <p>Changes saved.</p>
+          </div>
+        </transition>
+      </div>
+      <input
+        v-if="selectionLimit > selected.length"
+        v-model="search"
+        type="text"
+        class="search-field"
+        :placeholder="searchHint"
+      >
 
-            <div class="drags">
-              <ul id="results" class="result-group" v-if="search != null">
-                <li class="result-group-item result-header"><h5>Search results for "{{ search }}"</h5> <button class="button-close" @click="results = []; search = null"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M23.954 21.03l-9.184-9.095 9.092-9.174-2.832-2.807-9.09 9.179-9.176-9.088-2.81 2.81 9.186 9.105-9.095 9.184 2.81 2.81 9.112-9.192 9.18 9.1z"/></svg></button></li>
-                <li class="result-group-item"
-                    v-for="(element) in filteredResults"
-                    :key="element.id"
-                    :data-id="element.id">
-                    {{ element.name }}
+      <div class="drags">
+        <ul v-if="search !== null" id="results" class="result-group">
+          <li class="result-group-item result-header">
+            <h5>Search results for "{{ search }}"</h5>
+            <button class="button-close" @click="clearSearch">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M23.954 21.03l-9.184-9.095 9.092-9.174-2.832-2.807-9.09 9.179-9.176-9.088-2.81 2.81 9.186 9.105-9.095 9.184 2.81 2.81 9.112-9.192 9.18 9.1z"/></svg>
+            </button>
+          </li>
+          <li
+            v-for="element in filteredResults"
+            :key="element.id"
+            class="result-group-item"
+          >
+            {{ element.name }}
+            <button class="action-button" @click.stop.prevent="add(element)">add</button>
+          </li>
+        </ul>
 
-                    <button class="action-button" @click.stop.prevent="add">add</button>
-                  </li>
-              </ul>
-
-              <draggable
-                v-if="selected.length > 0"
-                class="list-group"
-                tag="ul"
-                v-model="selected"
-                :list="selected"
-                v-bind="dragOptions"
-                group="selections"
-                @start="drag = true"
-                @end="drag = false"
-                @change="changed"
-              >
-                <transition-group type="transition" :name="!drag ? 'flip-list' : null">
-                  <li
-                    class="list-group-item"
-                    v-for="(element, index) in selected"
-                    :key="element.id"
-                  >
-                    {{ element.name }}
-
-                    <button class="action-button" @click.stop.prevent="removeAt(index)">remove</button>
-                  </li>
-                </transition-group>
-              </draggable>
-            </div>
-            <h4 v-if="selection_limit <= selected.length">Max of {{ selection_limit }} items selected.</h4>
-        </div>
+        <draggable
+          v-if="selected.length > 0"
+          v-model="selected"
+          class="list-group"
+          tag="ul"
+          item-key="id"
+          v-bind="dragOptions"
+          @change="changed"
+        >
+          <template #item="{ element, index }">
+            <li class="list-group-item">
+              {{ element.name }}
+              <button class="action-button" @click.stop.prevent="removeAt(index)">remove</button>
+            </li>
+          </template>
+        </draggable>
+      </div>
+      <h4 v-if="selectionLimit <= selected.length">Max of {{ selectionLimit }} items selected.</h4>
     </div>
+  </div>
 </template>
 
 <script>
-    import axios from 'axios'
-    import draggable from 'vuedraggable'
+import axios from 'axios';
+import draggable from 'vuedraggable';
 
-    export default {
-      props: ['selected_items', 'search_uri', 'post_uri', 'hint', 'auth_headers', 'visibility', 'limit'],
-      components: {
-        draggable
-      },
-        data () {
-            return {
-                drag: false,
-                search: null,
-                results: [],
-                data_search: null,
-                search_hint:null,
-                data_post: null,
-                response: null,
-                updated_slides: [],
-                sortable: null,
-                selected: null,
-                headers: null,
-                element: null,
-                http:null,
-                search_timeout:null,
-                selection_limit:999
-            }
-        },
-        name: "DragAndDropSelect",
-        watch: {
-            search(after, before) {
-                if (after !== before) {
-                  clearTimeout(this.search_timeout);
-                  // Make a new timeout set to go off in 800ms
-                  this.search_timeout = setTimeout(() => {
-                      this.fetch();
-                  }, 500);
-                }
-            }
-        },
-        created() {
-          this.data_search = this.search_uri;
-          this.data_post = this.post_uri;
-          this.search_hint = this.hint;
-          this.selected = this.selected_items;
-          this.headers = this.auth_headers;
-          if (this.limit) this.selection_limit = this.limit;
-          this.http = axios.create(this.headers);
-        },
-        mounted() {
-
-        },
-        computed: {
-          filteredResults() {
-            return this.results.filter((item) => {
-              return typeof this.selected.find(o => o.id === item.id) === 'undefined';
-            });
-          },
-          dragOptions() {
-            return {
-              animation: 200,
-              group: "description",
-              disabled: false,
-              ghostClass: "ghost"
-            };
-          }
-        },
-        methods: {
-            fetch() {
-                if (this.search !== null && this.search.length > 2) {
-                    this.http.get(this.data_search, {params: {search: this.search}})
-                        .then(response => this.results = response.data.data)
-                        .catch(error => {
-                            window.console.log(error);
-                        });
-                }
-            },
-            persistChanges() {
-                if (this.data_post) {
-                  this.http.post(this.data_post, {updated_slides: this.selected})
-                      .then(response => {
-                          this.response = String(response.data);
-                          setTimeout(() => {
-                            this.response = null;
-                          }, 1600);
-                      })
-                      .catch(error => {
-                        window.console.log(error);
-                      });
-                }
-
-                this.$emit('selected', this.selected)
-
-                this.results = [];
-                this.search = null;
-            },
-              add: function(e) {
-                this.selected.unshift({ id: e.srcElement.parentElement.dataset.id, name: e.srcElement.parentElement.innerText });
-                this.persistChanges();
-              },
-              removeAt(idx) {
-                this.selected.splice(idx, 1);
-                this.persistChanges();
-              },
-              changed: function() {
-                this.persistChanges(); // all we need to do here
-              },
-              maybePluralize: (count, noun, suffix = 's') => {
-                `${count} ${noun}${count !== 1 ? suffix : ''}`;
-              }
-
-        }
+export default {
+  name: 'DragAndDropSelect',
+  components: {
+    draggable
+  },
+  props: {
+    selectedItems: {
+      type: Array,
+      default: () => []
+    },
+    searchUri: {
+      type: String,
+      required: true
+    },
+    postUri: {
+      type: String,
+      default: ''
+    },
+    hint: {
+      type: String,
+      default: ''
+    },
+    authHeaders: {
+      type: Object,
+      default: () => ({})
+    },
+    visibility: {
+      type: Boolean,
+      default: true
+    },
+    limit: {
+      type: Number,
+      default: 999
+    },
+    persistPayloadKey: {
+      type: String,
+      default: 'selectedItems'
     }
+  },
+  emits: ['selected', 'update:selectedItems'],
+  data() {
+    return {
+      search: null,
+      results: [],
+      searchHint: this.hint,
+      dataPost: this.postUri,
+      dataSearch: this.searchUri,
+      response: null,
+      selected: [],
+      http: axios.create(this.authHeaders),
+      searchTimeout: null,
+      selectionLimit: this.limit || 999
+    };
+  },
+  computed: {
+    filteredResults() {
+      return this.results.filter((item) => {
+        return typeof this.selected.find((selection) => selection.id === item.id) === 'undefined';
+      });
+    },
+    dragOptions() {
+      return {
+        animation: 200,
+        group: 'description',
+        disabled: false,
+        ghostClass: 'ghost'
+      };
+    }
+  },
+  watch: {
+    selectedItems: {
+      handler(items) {
+        this.selected = Array.isArray(items) ? [...items] : [];
+      },
+      immediate: true,
+      deep: true
+    },
+    search(after, before) {
+      if (after === before) {
+        return;
+      }
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.fetch();
+      }, 500);
+    }
+  },
+  beforeUnmount() {
+    clearTimeout(this.searchTimeout);
+  },
+  methods: {
+    normalizeSearchResults(response) {
+      if (Array.isArray(response?.data?.data)) {
+        return response.data.data;
+      }
+      if (Array.isArray(response?.data)) {
+        return response.data;
+      }
+      return [];
+    },
+    clearSearch() {
+      this.results = [];
+      this.search = null;
+    },
+    fetch() {
+      if (this.search !== null && this.search.length > 2) {
+        return this.http.get(this.dataSearch, { params: { search: this.search } })
+          .then((response) => {
+            this.results = this.normalizeSearchResults(response);
+          })
+          .catch((error) => {
+            window.console.log(error);
+          });
+      }
+      return Promise.resolve();
+    },
+    persistChanges() {
+      if (this.dataPost) {
+        this.http.post(this.dataPost, { [this.persistPayloadKey]: this.selected })
+          .then((response) => {
+            this.response = String(response.data);
+            setTimeout(() => {
+              this.response = null;
+            }, 1600);
+          })
+          .catch((error) => {
+            window.console.log(error);
+          });
+      }
+
+      const payload = [...this.selected];
+      this.$emit('selected', payload);
+      this.$emit('update:selectedItems', payload);
+      this.clearSearch();
+    },
+    add(element) {
+      this.selected.unshift({ id: element.id, name: element.name });
+      this.persistChanges();
+    },
+    removeAt(idx) {
+      this.selected.splice(idx, 1);
+      this.persistChanges();
+    },
+    changed() {
+      this.persistChanges();
+    }
+  }
+};
 </script>
 
 <style lang="scss">
