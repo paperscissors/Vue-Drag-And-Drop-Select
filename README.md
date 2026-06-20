@@ -64,11 +64,11 @@ createApp({
 
 ### Component props
 
-- `selected_items` (`Array`, default `[]`)
-- `search_uri` (`String`, required)
-- `post_uri` (`String`, optional)
+- `selectedItems` (`Array`, default `[]`)
+- `searchUri` (`String`, required)
+- `postUri` (`String`, optional)
 - `hint` (`String`, optional)
-- `auth_headers` (`Object`, default `{}`)
+- `authHeaders` (`Object`, default `{}`)
 - `visibility` (`Boolean`, default `true`)
 - `limit` (`Number`, default `999`)
 
@@ -83,4 +83,5 @@ createApp({
 - Library output now targets `dist/` bundles instead of pointing `main` to a raw `.vue` file.
 - `node-sass` was replaced with `sass`.
 - Drag-and-drop integration now uses `vuedraggable` Vue 3 API.
+- Props were normalized to camelCase (`selectedItems`, `searchUri`, `postUri`, `authHeaders`).
 - Component internals no longer mutate incoming prop references directly.

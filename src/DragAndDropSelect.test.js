@@ -39,9 +39,9 @@ const mountComponent = (overrides = {}) => {
 
   const wrapper = mount(DragAndDropSelect, {
     props: {
-      selected_items: [{ id: '1', name: 'One' }],
-      search_uri: '/search',
-      post_uri: '/post',
+      selectedItems: [{ id: '1', name: 'One' }],
+      searchUri: '/search',
+      postUri: '/post',
       ...overrides
     },
     global: {
@@ -64,9 +64,9 @@ describe('DragAndDropSelect', () => {
     vi.useRealTimers();
   });
 
-  it('copies selected_items into local state', () => {
+  it('copies selectedItems into local state', () => {
     const source = [{ id: '1', name: 'One' }];
-    const { wrapper } = mountComponent({ selected_items: source });
+    const { wrapper } = mountComponent({ selectedItems: source });
 
     expect(wrapper.vm.selected).toEqual(source);
     expect(wrapper.vm.selected).not.toBe(source);

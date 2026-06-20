@@ -3,7 +3,7 @@
     <div class="components-grid">
       <div v-if="response" class="message" role="alert">
         <transition name="fade">
-          <div class="content">
+          <div v-if="response" class="content">
             <p>Changes saved.</p>
           </div>
         </transition>
@@ -66,15 +66,15 @@ export default {
     draggable
   },
   props: {
-    selected_items: {
+    selectedItems: {
       type: Array,
       default: () => []
     },
-    search_uri: {
+    searchUri: {
       type: String,
       required: true
     },
-    post_uri: {
+    postUri: {
       type: String,
       default: ''
     },
@@ -82,7 +82,7 @@ export default {
       type: String,
       default: ''
     },
-    auth_headers: {
+    authHeaders: {
       type: Object,
       default: () => ({})
     },
@@ -95,17 +95,17 @@ export default {
       default: 999
     }
   },
-  emits: ['selected', 'update:selected_items', 'update:selectedItems'],
+  emits: ['selected', 'update:selectedItems'],
   data() {
     return {
       search: null,
       results: [],
       search_hint: this.hint,
-      data_post: this.post_uri,
-      data_search: this.search_uri,
+      data_post: this.postUri,
+      data_search: this.searchUri,
       response: null,
       selected: [],
-      http: axios.create(this.auth_headers),
+      http: axios.create(this.authHeaders),
       search_timeout: null,
       selection_limit: this.limit || 999
     };
@@ -126,7 +126,7 @@ export default {
     }
   },
   watch: {
-    selected_items: {
+    selectedItems: {
       handler(items) {
         this.selected = Array.isArray(items) ? [...items] : [];
       },
@@ -179,7 +179,6 @@ export default {
 
       const payload = [...this.selected];
       this.$emit('selected', payload);
-      this.$emit('update:selected_items', payload);
       this.$emit('update:selectedItems', payload);
       this.clearSearch();
     },

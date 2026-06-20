@@ -16,10 +16,10 @@ createApp({
  render: () => {
    const context = {
      props: {
-       auth_headers: auth,
-       selected_items: items,
-       search_uri: '...',
-       post_uri: '...',
+       authHeaders: auth,
+       selectedItems: items,
+       searchUri: '...',
+       postUri: '...',
        hint: 'Search by field name a, b, c',
        limit: 5
      }
